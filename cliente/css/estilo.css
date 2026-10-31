@@ -1,0 +1,13 @@
+body{font:1rem system-ui,sans-serif;max-width:950px;margin:auto;padding:1rem;color:#20252a;background:#f6f7f9}
+nav a{margin-right:1.4rem}
+header,article,section{background:white;border-radius:8px;padding:1rem;margin:1rem 0}
+input,button,select{padding:.45rem;margin:.2rem}
+button{cursor:pointer}
+label{display:inline-block}
+small{color:#555}
+.erro{color:#a22}
+.card{border-top:1px solid #ddd;padding:.6rem 0}
+h1,h2,h3{color:#234}
+form{display:inline-block}
+fieldset{border:1px solid #ddd;margin:.6rem 0}
+a{color:#12529b}

@@ -11,6 +11,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app.py .
 COPY livraria ./livraria
+COPY cliente ./cliente
 
 EXPOSE 8000
 # 1 worker com várias threads: os arquivos TXT têm trava, mas a saga de pedidos usa trava em memória.
