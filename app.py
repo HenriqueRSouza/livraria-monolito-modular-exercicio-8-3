@@ -1,4 +1,4 @@
-"""Ponto de entrada: monta os módulos (cada um com seu arquivo em LIVRARIA_DADOS) e expõe o gateway Flask.
+"""Ponto de entrada do servidor: monta a camada de negócios (módulos com dados em LIVRARIA_DADOS) e a API Flask.
 
 Local:   python app.py
 Azure:   gunicorn --bind=0.0.0.0:8000 --workers 1 --threads 8 app:app
@@ -6,13 +6,11 @@ Azure:   gunicorn --bind=0.0.0.0:8000 --workers 1 --threads 8 app:app
 import os
 
 from livraria.aplicacao import montar_modulos
-from livraria.gateway.bff import LivrariaBFF
-from livraria.gateway.web import create_app
+from livraria.servidor.app import create_app
 
 
 def criar_app(pasta_dados=None):
-    modulos = montar_modulos(pasta_dados or os.environ.get("LIVRARIA_DADOS", "dados"))
-    return create_app(LivrariaBFF(modulos))
+    return create_app(montar_modulos(pasta_dados or os.environ.get("LIVRARIA_DADOS", "dados")))
 
 
 def __getattr__(nome):
