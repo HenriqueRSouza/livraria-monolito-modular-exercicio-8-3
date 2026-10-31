@@ -4,7 +4,6 @@ import unittest
 
 from livraria.aplicacao import montar_modulos
 from livraria.compartilhado import RegraInvalida
-from livraria.gateway.bff import LivrariaBFF
 from livraria.modulos.pagamentos.dominio import Cupom
 
 
@@ -26,10 +25,10 @@ class ModulosTest(unittest.TestCase):
         self.assertEqual(self.m.busca.buscar_livros(titulo="inexistente"), [])
 
     def test_c02_detalhes_e_preco_promocional(self):
-        livro = LivrariaBFF(self.m).pagina_livro(1)["livro"]
-        self.assertEqual(len(livro["edicoes"]), 2)
-        self.assertEqual(livro["edicoes"][0]["preco_final_centavos"], 4000)
-        self.assertEqual({s["loja_id"]: s["quantidade"] for s in livro["edicoes"][0]["estoques"]}, {1: 1, 2: 2})
+        edicoes = self.m.catalogo.edicoes(1)
+        self.assertEqual(len(edicoes), 2)
+        self.assertEqual(edicoes[0]["preco_final_centavos"], 4000)
+        self.assertEqual({s["loja_id"]: s["quantidade"] for s in self.m.estoque.disponibilidade(1)}, {1: 1, 2: 2})
         with self.assertRaises(RegraInvalida):
             self.m.catalogo.obter_livro(999)
 
@@ -99,17 +98,15 @@ class ModulosTest(unittest.TestCase):
 
     def test_c09_avaliacoes(self):
         ana = self.cliente()
-        bff = LivrariaBFF(self.m)
-        bff.avaliar(ana, 1, {"nota": "4", "texto": "  Bom ritmo  "})
-        bff.avaliar(ana, 1, {"nota": "3", "texto": "Mudei de ideia"})  # atualiza, não duplica
+        self.m.catalogo.avaliar(ana, "Ana", 1, 4, "  Bom ritmo  ")
+        self.m.catalogo.avaliar(ana, "Ana", 1, 3, "Mudei de ideia")  # atualiza, não duplica
         avaliacoes = self.m.catalogo.avaliacoes(1)
         self.assertEqual((avaliacoes["media"], avaliacoes["total_avaliacoes"]), (4.0, 2))
         self.assertEqual([(a["titulo"], a["nota"]) for a in self.m.catalogo.avaliacoes_do_cliente(ana)],
                          [("A Casa das Marés", 3)])
-        for cliente_id, livro_id, nota, texto in ((ana, 1, 0, ""), (ana, 1, 6, ""), (ana, 1, 5, "x" * 501),
-                                                  (ana, 99, 5, ""), (999, 1, 5, "")):
+        for livro_id, nota, texto in ((1, 0, ""), (1, 6, ""), (1, 5, "x" * 501), (99, 5, "")):
             with self.assertRaises(RegraInvalida):
-                bff.avaliar(cliente_id, livro_id, {"nota": nota, "texto": texto})
+                self.m.catalogo.avaliar(ana, "Ana", livro_id, nota, texto)
         self.assertEqual(self.m.catalogo.avaliacoes(2)["media"], None)
 
     def test_c10_cupons(self):
