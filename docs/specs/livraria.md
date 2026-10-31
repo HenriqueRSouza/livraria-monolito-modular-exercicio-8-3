@@ -1,14 +1,21 @@
 # Livraria — especificação da demonstração (fonte única de verdade)
 
-> Exercício 8.3 (Lab 08): refatoração do MVP do exercício 7.4 para **monólito modular**, seguindo a arquitetura de microsserviços do exercício 8.2. Regras R01–R08 e critérios C01–C10 não mudam; muda só a organização do código e dos dados.
+> Exercício 8.5 (Lab 08): refatoração do MVP para a **arquitetura Cliente-Servidor** desenhada no Miro (View/Controller/Model no cliente; Aplicação/Routes/Negócios/Dados no servidor, comunicando por HTTP/REST). A camada de Negócios reaproveita os módulos do exercício 8.3. Regras R01–R08 e critérios C01–C10 não mudam.
 
 ## Escopo e dados
 
-Aplicativo local Flask com persistência em arquivo texto. Na primeira execução (arquivo ausente ou vazio) o catálogo de demonstração é gravado; execuções seguintes preservam o conteúdo. IDs inteiros; preços em centavos (inteiros, exibidos em reais); datas UTC ISO 8601. Dados iniciais: dois títulos (um com duas edições), dois autores/gêneros, duas lojas de bairros diferentes, estoques independentes, sinopses, avaliações, promoção, serviços e evento. Cada módulo grava no próprio arquivo TXT dentro da pasta `LIVRARIA_DADOS` (padrão `dados/`), uma linha por registro no formato `<tipo>\t<json do registro>`. Testes usam pastas temporárias. Nenhuma API externa é chamada.
+Cliente web (JavaScript) e servidor Flask com API REST e persistência em arquivo texto. Na primeira execução (arquivo ausente ou vazio) o catálogo de demonstração é gravado; execuções seguintes preservam o conteúdo. IDs inteiros; preços em centavos (inteiros, exibidos em reais); datas UTC ISO 8601. Dados iniciais: dois títulos (um com duas edições), dois autores/gêneros, duas lojas de bairros diferentes, estoques independentes, sinopses, avaliações, promoção, serviços e evento. Cada módulo grava no próprio arquivo TXT dentro da pasta `LIVRARIA_DADOS` (padrão `dados/`), uma linha por registro no formato `<tipo>\t<json do registro>`. Testes usam pastas temporárias. Nenhuma API externa é chamada.
 
 Entidades: **Livro** (id, título, autor, gênero, sinopse); **Edição** (id, livro_id, nome, preço_centavos, ano); **Loja** (id, nome, bairro, endereço, horário, pagamentos, serviços, café booleano, eventos); **Estoque** (edicao_id, loja_id, quantidade >= 0, seção); **Avaliação** (id, livro_id, nota 1..5, texto até 500 caracteres, autor, cliente_id opcional); **Promoção** (edicao_id, descrição, desconto_centavos, ativa); **Cliente** (id, nome, email único, bairro, interesses como gêneros); **Favorito** (cliente_id, livro_id); **Reserva** (id, cliente_id, edicao_id, loja_id, código único, estado `confirmada`/`retirada`/`cancelada`, preço_centavos, cupom opcional); **Compra** (id, cliente_id, edicao_id, loja_id, preço_centavos, origem reserva opcional, cupom opcional); **Alerta** (cliente_id, edicao_id, loja_id); **Notificação** (cliente_id, tipo, mensagem); **Cupom** (código único, descrição, tipo `percentual`/`fixo`, valor, ativo). Unicidade e integridade referencial são garantidas pelos casos de uso.
 
-## Arquitetura (monólito modular)
+## Arquitetura (cliente-servidor)
+
+- **Cliente** (`cliente/`): aplicação HTML/CSS/JavaScript (módulos ES) no navegador. `view.js` gera as telas, `controller.js` trata eventos e ações, `model.js` guarda o estado e é o único que chama o servidor.
+- **Servidor** (`livraria/servidor`): `app.py` (Aplicação) entrega o cliente e registra as rotas; `rotas.py` (Routes) expõe a API REST em `/api`, só com JSON. Erros de regra: 400 (404 em consultas); sem login: 401.
+- **Negócios e Dados**: os módulos abaixo (API pública + repositórios), sem conhecer HTTP.
+- A sessão do cliente é um cookie do Flask no mesmo domínio; não há senha nem autenticação de produção.
+
+### Camada de Negócios (monólito modular do 8.3)
 
 Um único deploy dividido nos módulos do diagrama 8.2. Cada módulo tem `api.py` (pública), `dominio.py` e `dados.py` (privados) e um arquivo de dados próprio:
 
@@ -25,7 +32,7 @@ Um único deploy dividido nos módulos do diagrama 8.2. Cada módulo tem `api.py
 - Módulos só importam outros módulos pela `api.py` e guardam apenas IDs de dados de outros módulos.
 - Reações entre módulos usam eventos no barramento em memória (`ClienteCadastrado`, `EstoqueReposto`, `ReservaCancelada`, `CompraRegistrada`), ligados em `livraria/aplicacao.py`.
 - Operações que alteram dados de um módulo rodam em `repo.transacao()` daquele módulo. Reservar/comprar envolvem vários módulos e seguem uma saga: validação prévia, débito de estoque e compensação (devolução da unidade) se o pedido não for gravado.
-- `livraria/gateway` (BFF + Flask) é a única camada HTTP; monta as telas juntando as APIs dos módulos. O uso de cupom passa a ser registrado em `pagamentos` (UsoCupom), e cancelar a reserva libera esse uso.
+- O uso de cupom passa a ser registrado em `pagamentos` (UsoCupom), e cancelar a reserva libera esse uso.
 
 ## Regras e operações
 
@@ -78,7 +85,7 @@ R08. Cupons de desconto: ao reservar ou comprar diretamente, o cliente pode info
 - Dados interesses no cadastro, Quando consulto minha área, Então vejo recomendações e avisos de promoções relevantes, sem alegação de envio externo.
 
 **C08 — Navegação (R01–R06)**
-- Dado servidor Flask ativo, Quando navego por catálogo → detalhes → estoque por loja → reserva → confirmação, Então todas as ações funcionam via interface; lojas, cadastro, favoritos, compras, histórico, alertas e reposição também têm ações funcionais.
+- Dado servidor Flask ativo e o cliente carregado no navegador, Quando navego por catálogo → detalhes → estoque por loja → reserva → confirmação, Então todas as ações funcionam via interface; lojas, cadastro, favoritos, compras, histórico, alertas e reposição também têm ações funcionais.
 
 **C09 — Avaliações de clientes (R07)**
 - Dado cliente cadastrado, Quando avalia um livro com nota válida, Então a média e a quantidade do livro são recalculadas e a avaliação aparece na sua área.
