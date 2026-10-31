@@ -14,4 +14,4 @@ COPY livraria ./livraria
 
 EXPOSE 8000
 # 1 worker com várias threads: os arquivos TXT têm trava, mas a saga de pedidos usa trava em memória.
-CMD gunicorn --bind=0.0.0.0:${PORT} --workers 1 --threads 8 --timeout 120 "app:criar_app()"
+CMD gunicorn --bind=0.0.0.0:${PORT} --workers 1 --threads 8 --timeout 120 app:app

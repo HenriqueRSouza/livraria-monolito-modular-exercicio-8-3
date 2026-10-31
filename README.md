@@ -92,7 +92,7 @@ az appservice plan create -g rg-livraria -n plan-livraria --is-linux --sku B1
 az webapp create -g rg-livraria -p plan-livraria -n <nome-do-app> --runtime "PYTHON:3.12"
 
 az webapp config set -g rg-livraria -n <nome-do-app> --startup-file \
-  'gunicorn --bind=0.0.0.0:8000 --workers 1 --threads 8 --timeout 120 "app:criar_app()"'
+  'gunicorn --bind=0.0.0.0:8000 --workers 1 --threads 8 --timeout 120 app:app'
 az webapp config appsettings set -g rg-livraria -n <nome-do-app> --settings \
   SCM_DO_BUILD_DURING_DEPLOYMENT=true \
   LIVRARIA_DADOS=/home/dados \
@@ -102,13 +102,11 @@ az webapp config set -g rg-livraria -n <nome-do-app> --generic-configurations '{
 
 `/home` é o armazenamento persistente do App Service, então os arquivos em `/home/dados` continuam lá após reinícios e novos deploys.
 
-**Deploy automático pelo GitHub Actions** (`.github/workflows/azure-webapp.yml`):
+**Deploy automático pelo GitHub Actions** (`.github/workflows/main_engsoftwarelab8.yml`):
 
-1. No portal do Azure, abra o Web App e clique em **Baixar perfil de publicação**. Se o download estiver bloqueado, ative **Configurações > Configuração > Credenciais de publicação básica da autenticação SCM**.
-2. No GitHub, em **Settings > Secrets and variables > Actions**:
-   - secret `AZURE_WEBAPP_PUBLISH_PROFILE` = conteúdo do arquivo baixado;
-   - variável `AZURE_WEBAPP_NAME` = `<nome-do-app>`.
-3. A cada push na `main`, o workflow roda os testes e, se passarem, faz o deploy. Sem a variável configurada, só os testes rodam.
+O workflow foi gerado pelo **Deployment Center** do App Service (login no Azure por OIDC, com os secrets `AZUREAPPSERVICE_*` criados automaticamente). A cada push na `main` ele roda os testes e, se passarem, publica no Web App `EngSoftwareLab8`. Para outro Web App, configure o Deployment Center dele apontando para este repositório.
+
+Se o site mostrar a página padrão "Your app service is up and running", falta o comando de inicialização acima. O `app.py` também expõe `app`, então o padrão do Azure (`gunicorn app:app`) funciona.
 
 ### Opção 2: contêiner (App Service for Containers ou Container Apps)
 
